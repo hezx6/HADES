@@ -178,12 +178,9 @@ class GCN_Actor(nn.Module):
                 # 计算注意力得分
                 e_ij = self.leakyrelu(torch.matmul(combined, self.W_a).squeeze(-1) + 1e-7)  # [net_emb_num, dag_emb_num]
 
-                assert torch.isnan(e_ij[0, 0]) != True, "出现了nan"
                 # 归一化
                 alpha_s = F.softmax(e_ij, dim=1)
                 # 根据attention系数进行加权和，融合特征
-                # hyb_embedding_net = net_embedding.clone()  # 保留net_embedding原始特征
-                # hyb_embedding_dag = dag_embedding.clone()  # 保留dag_embedding原始特征
 
                 hyb_embedding_net = net_embedding + torch.matmul(alpha_s, dag_embedding)
                 hyb_embedding_dag = dag_embedding + torch.matmul(alpha_s.t(), net_embedding)
@@ -200,7 +197,7 @@ class GCN_Actor(nn.Module):
             return action
 
 
-class GCN_PPO:
+class ACED_Agent:
     def __init__(
         self,
         net_node_feat_dim,

@@ -51,7 +51,7 @@ class TwinQNetwork(nn.Module):
 
 
 # ================= SAC 算法 =================
-class SAC_Agent:
+class BSAC_Agent:
 
     def __init__(self, state_dim, action_dim, gamma, tau, alpha, actor_lr, critic_lr, alpha_lr, target_entropy, device, writer):
         self.device = device

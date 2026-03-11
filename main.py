@@ -5,11 +5,11 @@ import random
 import time
 
 
-from Algorithm.DIPO.DiPo_GCN import DiPo_GCN
+from Algorithm.HADES.HADES import HADES_Agent
 
-from Algorithm.GCN_PPO import GCN_PPO
+from Algorithm.ACED import ACED_Agent
 
-from Algorithm.SAC import SAC_Agent
+from Algorithm.BSAC import BSAC_Agent
 from Algorithm.SDAC.SDAC import SDAC_Agent
 from Algorithm.QVPO.QVPO import QVPO_Agent
 from Algorithm.DDPG import DDPG_Agent
@@ -30,11 +30,10 @@ from setup import setup, readParser
 
 def main(args, config):
     writer = config["writer"]
-    data_save_dir = config["data_save_dir"]
+
     model_save_dir = config["model_save_dir"]
-    figure_save_dir = config["figure_save_dir"]
+
     device = config["device"]
-    logger = config["logger"]
 
     #  # Initial environment
     slot_length = args.slot_length
@@ -71,9 +70,6 @@ def main(args, config):
         shuffle=args.dag_dataset_shuffle,
     )
 
-    if len(DAG_tasks_set) < args.dag_num:
-        raise ValueError("Not enough DAGs were built from dataset. " f"source={args.dag_source}, file={dataset_file}, expected={args.dag_num}, got={len(DAG_tasks_set)}, dag_node_num={args.dag_node_num}")
-
     env = Env(args, DAG_tasks_set)
 
     if args.mode == "train":
@@ -85,12 +81,10 @@ def main(args, config):
         avg_comp_delay = ["" for _ in range(args.num_episode)]
         avg_total_delay = ["" for _ in range(args.num_episode)]
         avg_energy = ["" for _ in range(args.num_episode)]
-        item = ["reward", "avg_total_delay", "avg_energy", "success_rate", "avg_trans_delay", "avg_queue_delay", "avg_comp_delay"]
-        item_lists = [rewards, avg_total_delay, avg_energy, success_rate, avg_trans_delay, avg_queue_delay, avg_comp_delay]
 
         if algorithm == "HADES":
 
-            agent = DiPo_GCN(args, net_node_feat_dim, dag_node_feat_dim, dag_embedding_dim, net_embedding_dim, num_net_gcn_layers, num_dag_gcn_layers, action_dim, action_len, device, writer)
+            agent = HADES_Agent(args, net_node_feat_dim, dag_node_feat_dim, dag_embedding_dim, net_embedding_dim, num_net_gcn_layers, num_dag_gcn_layers, action_dim, action_len, device, writer)
 
             steps = 0
 
@@ -398,7 +392,7 @@ def main(args, config):
 
             coef_entropy = args.coef_entropy
 
-            agent = GCN_PPO(
+            agent = ACED_Agent(
                 net_node_feat_dim=net_node_feat_dim,
                 dag_node_feat_dim=dag_node_feat_dim,
                 dag_embedding_dim=dag_embedding_dim,
@@ -617,7 +611,7 @@ def main(args, config):
 
         elif algorithm == "BSAC":
 
-            agent = SAC_Agent(
+            agent = BSAC_Agent(
                 state_dim=state_dim,
                 action_dim=action_len,
                 gamma=args.gamma,
@@ -811,7 +805,7 @@ def main(args, config):
 
         if algorithm == "HADES":
 
-            agent = DiPo_GCN(args, net_node_feat_dim, dag_node_feat_dim, dag_embedding_dim, net_embedding_dim, num_net_gcn_layers, num_dag_gcn_layers, action_dim, action_len, device, writer)
+            agent = HADES_Agent(args, net_node_feat_dim, dag_node_feat_dim, dag_embedding_dim, net_embedding_dim, num_net_gcn_layers, num_dag_gcn_layers, action_dim, action_len, device, writer)
             agent.load_model(dir=model_save_dir, remark=args.remark)
 
             steps = 0
@@ -1045,7 +1039,7 @@ def main(args, config):
 
             coef_entropy = args.coef_entropy
 
-            agent = GCN_PPO(
+            agent = ACED_Agent(
                 net_node_feat_dim=net_node_feat_dim,
                 dag_node_feat_dim=dag_node_feat_dim,
                 dag_embedding_dim=dag_embedding_dim,
@@ -1212,7 +1206,7 @@ def main(args, config):
 
         elif algorithm == "DSAC":
 
-            agent = SAC_Agent(
+            agent = BSAC_Agent(
                 state_dim=state_dim,
                 action_dim=action_len,
                 gamma=args.gamma,
