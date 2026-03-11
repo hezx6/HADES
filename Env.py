@@ -3,7 +3,6 @@
 import constants as cn
 import numpy as np
 from UE import UserEquipment
-from ES import ES
 import math
 from common import number_to_onehot
 from collections import deque

@@ -454,7 +454,7 @@ class DatasetDAGTaskBuilder:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build dataset-driven DAG tasks")
     parser.add_argument("--dataset", choices=["huawei", "cluster"], default="huawei")
-    parser.add_argument("--file", default="/mnt/storage/hezx/HADES/dataset/Huawei-Network-AI-Challenge/task_table.csv", help="dataset file path")
+    parser.add_argument("--file", default="./dataset/Huawei-Network-AI-Challenge/task_table.csv", help="dataset file path")
     parser.add_argument("--dag-num", type=int, default=5)
     parser.add_argument("--target-total-nodes", type=int, default=5)
     parser.add_argument("--min-total-nodes", type=int, default=None)

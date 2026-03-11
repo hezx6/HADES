@@ -1,7 +1,6 @@
 from UE import UserEquipment
 import constants as cn
 import numpy as np
-import copy
 import logging
 from colorama import init, Fore, Style, Back
 import networkx as nx

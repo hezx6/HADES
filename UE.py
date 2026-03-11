@@ -6,7 +6,6 @@ import random
 import copy
 import logging
 from colorama import init, Fore, Style, Back
-import math
 
 
 class UserEquipment:

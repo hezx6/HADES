@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import math
+
 import numpy as np
 import os
 
@@ -27,7 +27,7 @@ es_resource_type = [0, 1, 0, 1, 2, 0, 1, 2, 2, 2, 0, 0, 1, 1, 2, 0, 2, 1, 1, 0] 
 
 model_type = [0, 1, 2, 3]
 model_delay_matrix = np.array([[2.76, 1.58, 2.57], [6.45, 3.18, 3], [10.64, 7.78, 4.8], [33.9, 60.5, 21.6]], dtype=np.float32) / 1000
-model_energy_matrix = np.array([[240, 14.57, 21.89], [570, 30.03, 30.9612], [930, 73.79, 67.3263], [5130, 34.42, 76.8868]], dtype=np.float32) / 1000
+model_energy_matrix = np.array([[240, 17.2, 21.89], [570, 36.57, 30.96], [930, 88.13, 67.3263], [3868.2, 850.82, 76.89]], dtype=np.float32) / 1000
 
 
 band_width = 20 * MB

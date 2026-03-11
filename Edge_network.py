@@ -13,22 +13,6 @@ import bisect
 from common import number_to_onehot
 
 
-def normalize_01(tensor, max_vals):
-    # 断言 max_vals 的长度必须与第二维度相同
-    assert tensor.shape[1] == len(max_vals), "max_vals 应该包含 4 个元素，与张量第二维度匹配"
-
-    # 创建 min_val 为 0 的数组，与 max_vals 的形状匹配
-    min_vals = np.zeros_like(max_vals)
-
-    # 归一化过程：对每个维度根据对应的 max_val 进行归一化
-    normalized_tensor = (tensor - min_vals) / (max_vals - min_vals)
-
-    # 确保归一化后的结果在 [0, 1] 之间
-    assert np.all((normalized_tensor >= 0) & (normalized_tensor <= 1)), "归一化结果超出 [0, 1] 范围"
-
-    return normalized_tensor
-
-
 class vir_ES:
     def __init__(self, idx):
         self.idx = idx
