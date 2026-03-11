@@ -2,7 +2,6 @@
 
 import constants as cn
 import numpy as np
-from common import ran_int, ran_float, ran01, yes_no
 import random
 import copy
 import logging

@@ -17,7 +17,6 @@ run_time_eval/log/
 *.trt
 *.pth
 *.pt
-dataset/
 eval/
 train/
 MyMatplotlibrc

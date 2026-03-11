@@ -17,7 +17,6 @@ class ES(object):
         self.slot_length = slot_length
         self.covered_ue = []
         self.xpu_type = xpu_type
-        self.xpu_frequency = np.random.choice(cn.ES_xpu_frequency_set)
         self.tasks_wait_queue = []
         self.ready_tasks_queue = []
         self.computing_rest_time = []

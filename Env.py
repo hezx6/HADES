@@ -5,11 +5,10 @@ import numpy as np
 from UE import UserEquipment
 from ES import ES
 import math
-from common import query_key, read_nth_line_mth_column, number_to_onehot
+from common import number_to_onehot
 from collections import deque
 import logging
 from colorama import init, Fore, Style, Back
-from DAG_task import DAG_task
 from Edge_network import Edge_Network
 import torch
 import random
@@ -282,39 +281,16 @@ class Reward(object):
             self.delay_reward = 1 if self.current_SortinoRatio >= self.last_SortinoRatio else 0
             self.last_SortinoRatio = self.current_SortinoRatio
 
-        if self.reward_type == 1:
-            # 对比 Sortino Rate(t)*sqar(n)和Sortino Rate(t-1)*sqar(n)，给予固定惩罚
-            self.down_variance = np.linalg.norm(np.maximum(current_cvar_value - self.expected_delay_CVAR, 0) ** 2 + 1e-7)
-            self.current_SortinoRatio = -self.current_average_delay / self.down_variance
-
-            self.delay_reward = 1 if self.current_SortinoRatio >= self.last_SortinoRatio else 0
-            self.last_SortinoRatio = self.current_SortinoRatio
-
-        elif self.reward_type == 2:
-            # 拆分SortinoRatio，opt = -时延均值-CVaR值的下行偏差
-            self.down_variance = np.sqrt(np.maximum(current_cvar_value - self.expected_delay_CVAR, 0) ** 2 + 1e-7)
-            self.current_SortinoRatio = -self.current_average_delay / self.down_variance
-            self.delay_reward = -self.current_average_delay - self.down_variance
-
-        elif self.reward_type == 3:  #
+        elif self.reward_type == 1:  #
             # 优化Sharpe率 = 时延均值/时延样本之间的l2范数（方差/sqar（n）） ==> 对比 SR(t)和SR(t-1)，给予固定惩罚
-            # 原论文（Towards Risk-Averse Edge Computing With Deep Reinforcement Learning）错误的方差计算方式，实际采用的是l2范数
+            # 论文（Towards Risk-Averse Edge Computing With Deep Reinforcement Learning）的方差计算方式
             self.variance = np.linalg.norm(np_dealy_record - self.current_average_delay) + 1e-7
             self.current_SharpeRatio = -self.current_average_delay / self.variance
 
             self.delay_reward = 1 if self.current_SharpeRatio >= self.last_SharpeRatio else 0
             self.last_SharpeRatio = self.current_SharpeRatio
 
-        elif self.reward_type == 4:  #
-            # 优化Sharpe率 = 时延均值/时延的方差 ==> 对比 SR(t)和SR(t-1)，给予固定惩罚
-            # 修正后的Sharpe率
-            self.variance = np.sqrt(np.mean((np_dealy_record - self.current_average_delay) ** 2) + 1e-7)
-            self.current_SharpeRatio = -self.current_average_delay / self.variance
-
-            self.delay_reward = 1 if self.current_SharpeRatio >= self.last_SharpeRatio else 0
-            self.last_SharpeRatio = self.current_SharpeRatio
-
-        elif self.reward_type == 5:
+        elif self.reward_type == 2:
             # opt = -时延均值
             self.delay_reward = -self.current_average_delay
 

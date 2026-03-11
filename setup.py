@@ -171,12 +171,6 @@ def readParser():
     parser.add_argument("--sac_alpha_lr", default=0.0003, type=float)
     parser.add_argument("--sac_target_entropy", default=None)
 
-    # D3QN
-    parser.add_argument("--action_space", default=0.0003, type=float)
-
-    parser.add_argument("--epsilon_decay", default=1e-7, type=float)
-    parser.add_argument("--epsilon_min", default=0.01, type=float)
-
     return parser.parse_args()
 
 

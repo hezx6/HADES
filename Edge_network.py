@@ -1,19 +1,16 @@
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
+
 import constants as cn
 from ES import ES
 import torch
 import logging
 import math
-import copy
-import heapq
+
 import concurrent.futures
 from queue import Queue
 import bisect
 from common import number_to_onehot
-from fa2_modified import ForceAtlas2
 
 
 def normalize_01(tensor, max_vals):
@@ -68,9 +65,9 @@ class Edge_Network:
 
             # 批量添加边
             self.edges = [
-                (1, 2, {"weight": 40 * cn.ms, "color": "red", "style": "-"}),
-                (1, 3, {"weight": 40 * cn.ms, "color": "red", "style": "-"}),
-                (1, 4, {"weight": 40 * cn.ms, "color": "red", "style": "-"}),
+                (1, 2, {"weight": 4 * cn.ms, "color": "red", "style": "-"}),
+                (1, 3, {"weight": 4 * cn.ms, "color": "red", "style": "-"}),
+                (1, 4, {"weight": 4 * cn.ms, "color": "red", "style": "-"}),
                 (2, 10, {"weight": 1.41 * cn.ms, "color": "green", "style": "--"}),
                 (2, 9, {"weight": 1.41 * cn.ms, "color": "green", "style": "--"}),
                 (9, 10, {"weight": 2 * cn.ms, "color": "black", "style": ":"}),
@@ -87,9 +84,9 @@ class Edge_Network:
 
             # 批量添加边
             self.edges = [
-                (1, 2, {"weight": 40 * cn.ms, "color": "red", "style": "-"}),
-                (1, 3, {"weight": 40 * cn.ms, "color": "red", "style": "-"}),
-                (2, 3, {"weight": 40 * cn.ms, "color": "red", "style": "-"}),
+                (1, 2, {"weight": 4 * cn.ms, "color": "red", "style": "-"}),
+                (1, 3, {"weight": 4 * cn.ms, "color": "red", "style": "-"}),
+                (2, 3, {"weight": 4 * cn.ms, "color": "red", "style": "-"}),
                 (1, 4, {"weight": 1.41 * cn.ms, "color": "green", "style": "--"}),
                 (1, 5, {"weight": 1.41 * cn.ms, "color": "green", "style": "--"}),
                 (1, 6, {"weight": 1.41 * cn.ms, "color": "green", "style": "--"}),
@@ -168,47 +165,6 @@ class Edge_Network:
         self.nx_obj = G
         # 缓存所有最短路径
         self.shortest_path_cache = dict(nx.all_pairs_dijkstra_path_length(self.nx_obj))
-
-        # # 获取边的颜色和线条类型列表
-        # edge_colors = [G[u][v]["color"] for u, v in G.edges()]
-        # edge_styles = [G[u][v]["style"] for u, v in G.edges()]
-
-        # # 绘制图
-        # forceatlas2 = ForceAtlas2(
-        #     # Behavior alternatives
-        #     outboundAttractionDistribution=True,  # Dissuade hubs
-        #     linLogMode=False,  # NOT IMPLEMENTED
-        #     adjustSizes=False,  # Prevent overlap (NOT IMPLEMENTED)
-        #     edgeWeightInfluence=1.0,
-        #     # Performance
-        #     jitterTolerance=1.0,  # Tolerance
-        #     barnesHutOptimize=True,
-        #     barnesHutTheta=0.5,
-        #     multiThreaded=False,  # NOT IMPLEMENTED
-        #     # Tuning
-        #     scalingRatio=10,
-        #     strongGravityMode=False,
-        #     gravity=1.0,
-        #     # Log
-        #     verbose=False,
-        # )
-        # pos = forceatlas2.forceatlas2_networkx_layout(G, iterations=1000)
-
-        # # 使用 nx.draw_networkx_edges 直接应用边的属性
-        # nx.draw_networkx_nodes(G, pos, node_color="#003A75", node_size=250)
-        # # nx.draw_networkx_labels(G, pos)
-        # nx.draw_networkx_edges(G, pos, edge_color=edge_colors, style=edge_styles)
-
-        # # 创建图例（legend）
-        # legend_elements = [
-        #     Line2D([0], [0], color="red", lw=1.5, linestyle="-", label="4 ms"),
-        #     Line2D([0], [0], color="black", lw=1.5, linestyle=":", label="2 ms"),
-        #     Line2D([0], [0], color="green", lw=1.5, linestyle="--", label="1.41 ms"),
-        # ]
-
-        # plt.legend(handles=legend_elements, loc="best")
-        # plt.savefig("/home/hzx/Hete-DAG/figure/EdgeNetwork.png")
-        # plt.clf()
 
         # 为边缘节点初始化计算资源
         self.ESs = [ES(cn.es_resource_type[i], i + 1, self.slot_length, self.es_num) for i in range(self.es_num)]  # index从1开始，与创建nx图时的序号一致
