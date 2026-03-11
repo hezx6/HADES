@@ -1,9 +1,7 @@
 Source code of paper ``HADES: Heterogeneity-Aware Dependent Task Offloading in Collaborative Edge Networks"
 
 
-## 运行环境
-
-推荐环境如下：
+## Environment
 
 - OS：Linux
 - Python：3.10.12
@@ -11,23 +9,19 @@ Source code of paper ``HADES: Heterogeneity-Aware Dependent Task Offloading in C
 - CUDA：13.0
 
 
-### Huawei 数据集
+### Huawei Dataset
 
-默认读取路径：
+Default path： [dataset/Huawei-Network-AI-Challenge](dataset/Huawei-Network-AI-Challenge)
 
-- [dataset/Huawei-Network-AI-Challenge](dataset/Huawei-Network-AI-Challenge)
+### Alibaba Dataset
 
-### Alibaba 数据集
+Default path： [dataset/cluster-trace-v2018](dataset/cluster-trace-v2018)
 
-默认读取路径：
+Note: The `batch_task.csv` file in this dataset is relatively large, so it needs to be downloaded manually from the dataset source.
 
-- [dataset/cluster-trace-v2018](dataset/cluster-trace-v2018)
+## Example
 
-注意：由于`cluster` 数据集中的 `batch_task.csv` 文件体积较大，需要手动按照数据集地址下载文件
-
-## 示例
-
-一个基于 Huawei-Network-AI-Challenge 数据集训练 `HADES` 的示例命令：
+An example command for training `HADES` on the Huawei-Network-AI-Challenge dataset:
 
 ```bash
 python main.py \
