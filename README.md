@@ -25,7 +25,7 @@ Source code of paper ``HADES: Heterogeneity-Aware Dependent Task Offloading in C
 
 注意：由于`cluster` 数据集中的 `batch_task.csv` 文件体积较大，需要手动按照数据集地址下载文件
 
-## 训练示例
+## 示例
 
 一个基于 Huawei-Network-AI-Challenge 数据集训练 `HADES` 的示例命令：
 
