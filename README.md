@@ -8,6 +8,19 @@
 - Torch：2.2.2
 - CUDA：13.0
 
+## Main Files
+
+- [main.py](main.py): Main entry point for training and evaluation.
+- [Env.py](Env.py): Core environment implementation for task offloading and scheduling.
+- [Dataset_DAG_task.py](Dataset_DAG_task.py): DAG task dataset loading and preprocessing.
+- [Edge_network.py](Edge_network.py): Edge network and system topology modeling.
+- [UE.py](UE.py): User equipment related definitions and logic.
+- [ES.py](ES.py): Edge server related definitions and logic.
+- [Algorithm/](Algorithm/): Implementations of reinforcement learning baselines and the `HADES` method.
+- [dataset/](dataset/): Dataset files and download-related resources.
+
+
+
 
 ### Huawei Dataset
 
