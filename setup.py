@@ -1,0 +1,300 @@
+import logging
+import os
+from datetime import datetime
+from torch.utils.tensorboard import SummaryWriter
+from constants import ROOT_DIR
+import torch
+import sys
+import argparse
+import shutil
+import numpy as np
+import random
+from common import delete_files_with_prefix
+from typing import Callable, Sequence, Tuple, Optional
+
+
+def readParser():
+    parser = argparse.ArgumentParser(description="Heterogeneous DAG")
+
+    # ===========  common config  ==============
+    parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+    parser.add_argument("--log2file", action="store_true", help="Enable logging to file")
+    parser.add_argument("--log2stdout", action="store_false", help="Not enable logging to stdout")
+    parser.add_argument("--data_save_dir", default="", type=str, help="save all data to the given file directory")
+    parser.add_argument("--clr_data_first", action="store_true", help="clear exited datas before saving new datas")
+    parser.add_argument("--seed", type=int, default=45)
+    parser.add_argument("--mode", default="train", type=str, choices=["train", "eval"])
+    parser.add_argument("--device", "-d", default="cuda:2", help="run on CUDA (default: cuda:0)")
+
+    # ==========  common RL config  ============
+    parser.add_argument(
+        "--algorithm",
+        type=str,
+        default="HADES",
+        choices=["HADES", "SDAC", "QVPO", "ACED", "MESON", "BSAC", "Random"],
+    )
+    parser.add_argument("--gamma", type=float, default=0.99, help="discount factor (default: 0.99)")
+    parser.add_argument("--remark", type=str, default="test")
+
+    # common training config
+    parser.add_argument("--threshod", "-th", default=128, type=int)
+    parser.add_argument("--update_coef", type=float, default=0.5, help="update_interval = update_coef * max_episilon_len")
+    parser.add_argument("--train_interval", type=int, default=256, help="the interval between two training process(default: 256)")
+    parser.add_argument("--batch_size", type=int, default=32, help="(default: 1024)")
+    parser.add_argument("--epochs_num", "-epc", default=1, type=int, help="update epochs_num times every training")
+    parser.add_argument("--policy_update_delay", default=4, type=int, help="policy update interval(steps) between two updates")
+    parser.add_argument("--delay_alpha_update", type=int, default=2048, help="Soft update coefficient for target networks")
+
+    parser.add_argument("--eval_intervel", "-ei", default=20, type=int)
+
+    parser.add_argument("--reward_type", type=int, default=0)
+    parser.add_argument("--delay_coef", type=float, default=0.5, help="delay reward coefficient")
+    parser.add_argument("--energy_coef", type=float, default=5e-2, help="energy reward coefficient")
+    parser.add_argument("--expected_delay_CVAR", type=float, default=0.3, help="seccond")
+
+    parser.add_argument("--memory_size", default=50000, type=int)
+
+    parser.add_argument("--sdac_lr", type=float, default=3e-4, help="Learning rate for both actor and critic networks")
+    parser.add_argument("--alpha_lr", type=float, default=3e-2, help="Learning rate for temperature parameter alpha")
+    parser.add_argument("--target_entropy", type=float, default=None, help="Target entropy for automatic entropy tuning (default: -action_dim)")
+    parser.add_argument("--update_actor_target_every", type=int, default=1, help="update actor target per iteration (default: 1)")
+
+    # ================================= Env config =======================================
+    parser.add_argument("--num_episode", type=int, default=10, help="episode num (default: 300)")
+    parser.add_argument("--max_ep_len", type=int, default=128, help="maximum episode length (default: 2048)")
+
+    parser.add_argument("--slot_length", type=float, default=0.2, help="system slot length")
+    parser.add_argument("--es_num", type=int, default=15, help="number of es")
+    parser.add_argument("--ue_num", "-u", default=8, type=int, help="UEs num")
+
+    parser.add_argument("--dag_num", type=int, default=5)
+    parser.add_argument("--prob", type=int, default=1, help="the probability of generating DAG task in each time slot")
+    parser.add_argument("--dag_node_num", type=int, default=5, help="The number of DAG's node")
+    parser.add_argument("--dag_max_out", type=int, default=2, help="The max out degree of DAG nodes")
+    parser.add_argument("--dag_source", type=str, default="huawei", choices=["huawei", "cluster"], help="DAG generation source")
+    parser.add_argument("--dag_dataset_file", type=str, default="", help="Path of dataset file used to build DAGs")
+    parser.add_argument("--dag_dataset_shuffle", action="store_true", help="Shuffle dataset DAG order before sampling")
+
+    # ===================================  DIPO  =========================================
+    parser.add_argument("--tau", type=float, default=0.005, help="target smoothing coefficient (default: 0.005)")
+
+    parser.add_argument("--beta_schedule", type=str, default="cosine", help="linear, cosine or vp")
+    parser.add_argument("--diffusion_lr", type=float, default=0.0003, help="diffusion learning rate (default: 0.0003)")
+    parser.add_argument("--critic_lr", type=float, default=0.00003, help="critic learning rate (default: 0.0003)")
+    parser.add_argument("--action_lr", type=float, default=0.03, help="diffusion learning rate (default: 0.03)")
+    parser.add_argument("--noise_ratio", type=float, default=1.0, help="noise ratio in sample process (default: 1.0)")
+    parser.add_argument("--action_update_epochs", type=int, default=20, help="每次更新过程中action更新多少次(action gradient根据Q更新的epoch数),action gradient steps (default: 20)")
+    parser.add_argument("--ratio", type=float, default=0.1, help="the ratio of action grad norm to action_dim (default: 0.1)")
+    parser.add_argument("--ac_grad_norm", type=float, default=1.0, help="actor and critic grad norm (default: 1.0)")
+    parser.add_argument("--cri_grad_norm", type=float, default=1.0, help="actor and critic grad norm (default: 1.0)")
+
+    # =========================================  SDAC =======================================
+    # Network architectures
+    parser.add_argument("--sdac_q_hidden_sizes", type=Sequence[int], default=(256, 256), help="Q network hidden layer sizes")
+    parser.add_argument("--sdac_policy_hidden_sizes", type=Sequence[int], default=(256, 256), help="Policy network hidden layer sizes")
+    # Diffusion process parameters
+    parser.add_argument("--diffusion_steps", type=int, default=5, help="Number of diffusion timesteps")
+    parser.add_argument("--sdac_beta_schedule", type=str, default="linear")
+    parser.add_argument("--num_particles", type=int, default=1, help="Number of action samples (particles) to generate")
+    # Training parameters
+    parser.add_argument("--sdac_noise_scale", type=float, default=0.1, help="Scale of Gaussian noise added to actions for exploration")
+
+    # ========================================  QVPO  =====================================
+    parser.add_argument("--alpha_mean", type=float, default=0.001, help="running mean update weight (default: 0.1)")
+
+    parser.add_argument("--alpha_std", type=float, default=0.001, help="running std update weight (default: 0.001)")
+
+    parser.add_argument("--beta", type=float, default=1.0, help="expQ weight (default: 1.0)")
+
+    parser.add_argument("--weighted", type=bool, default=True, help="weighted training")
+
+    parser.add_argument("--aug", type=bool, default=True, help="augmentation")
+
+    parser.add_argument("--train_sample", type=int, default=64, help="train_sample (default: 64)")
+
+    parser.add_argument("--chosen", type=int, default=1, help="chosen actions (default:1)")
+
+    parser.add_argument("--q_neg", type=float, default=0.0, help="q_neg (default: 0.0)")
+
+    parser.add_argument("--behavior_sample", type=int, default=4, help="behavior_sample (default: 1)")
+    parser.add_argument("--target_sample", type=int, default=4, help="target_sample (default: behavior sample)")
+
+    parser.add_argument("--eval_sample", type=int, default=32, help="eval_sample (default: 512)")
+
+    parser.add_argument("--deterministic", action="store_true", help="deterministic mode")
+
+    parser.add_argument("--q_transform", type=str, default="qadv", help="q_transform (default: qrelu)")
+
+    parser.add_argument("--gradient", action="store_true", help="aug gradient")
+
+    parser.add_argument("--cut", type=float, default=1.0, help="cut (default: 1.0)")
+    parser.add_argument("--times", type=int, default=1, help="times (default: 1)")
+
+    parser.add_argument("--epsilon", type=float, default=0.0, help="eps greedy (default: 0.0)")
+    parser.add_argument("--entropy_alpha", type=float, default=0.02, help="entropy_alpha (default: 0.02)")
+
+    # =========================================  GCN-PPO  =====================================
+    parser.add_argument("--ppo_lr_actor", type=float, default=0.0003)
+    parser.add_argument("--ppo_lr_critic", type=float, default=0.0003)
+
+    parser.add_argument("--eps_clip", "-cp", default=0.15, type=float, help="epsilon clip")
+    parser.add_argument("--coef_entropy", "-ce", default=0.005, type=float, help="PPO_d的动作熵惩罚")
+
+    parser.add_argument("--action_std_init", "-asi", default=0.15, type=float)
+    parser.add_argument("--action_std_decay_rate", default=0.02, type=float)
+    parser.add_argument("--min_action_std", "-mas", default=0.02, type=float)
+
+    parser.add_argument("--gcn_layer_num", "-gln", default=2, type=int)
+    parser.add_argument("--attention", action="store_true", help="Enable attention")
+    parser.add_argument("--normalize", action="store_true", help="Enable normalize")
+
+    # =======================================  DDPG  ====================================
+    parser.add_argument("--ddpg_actor_lr", type=float, default=0.0003)
+    parser.add_argument("--ddpg_critic_lr", type=float, default=0.0003)
+    parser.add_argument("--ddpg_init_noise_std", type=float, default=0.2)
+    parser.add_argument("--ddpg_action_std_decay_rate", type=float, default=0.95)
+    parser.add_argument("--ddpg_min_action_std", type=float, default=0.01)
+
+    # GCN-ppo-Lagrangen
+    parser.add_argument("--penalty_lr", type=float, default=0.0003)
+    parser.add_argument("--cost_limit", type=float, default=10)
+    # TD3
+    parser.add_argument("--td3_noise_clip", "-tnc", default=0.025, type=float)
+    parser.add_argument("--td3_policy_noise", "-tpn", default=0.2, type=float)
+    parser.add_argument("--td3_noise_std", "-tns", default=0.025, type=float)
+
+    # SAC
+    parser.add_argument("--sac_actor_lr", default=0.0003, type=float)
+    parser.add_argument("--sac_critic_lr", default=0.0003, type=float)
+    parser.add_argument("--sac_buffer_capacity", default=100000, type=float)
+    parser.add_argument("--sac_alpha", default=0.2, type=float)
+    parser.add_argument("--sac_alpha_lr", default=0.0003, type=float)
+    parser.add_argument("--sac_target_entropy", default=None)
+
+    # D3QN
+    parser.add_argument("--action_space", default=0.0003, type=float)
+
+    parser.add_argument("--epsilon_decay", default=1e-7, type=float)
+    parser.add_argument("--epsilon_min", default=0.01, type=float)
+
+    return parser.parse_args()
+
+
+def setup(args, argv):
+    start_time = datetime.now()
+    run_dir = os.path.join(ROOT_DIR + "/run", f'{start_time.strftime("%Y-%m-%d")}')
+    os.makedirs(run_dir, exist_ok=True)
+    log_file_name = start_time.strftime("%H:%M:%S") + "-" + args.algorithm + "-" + args.remark
+
+    # 日志记录设置
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    if args.log2file:
+        file_handler = logging.FileHandler(os.path.join(run_dir, log_file_name), "a")
+        file_handler.setLevel(getattr(logging, args.log_level))
+        file_handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s \n ----------------------------------------------------------------------------------", datefmt="%H:%M:%S")
+        )
+        logger.addHandler(file_handler)
+    elif args.log2stdout:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(getattr(logging, args.log_level))
+        console_handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s \n ----------------------------------------------------------------------------------", datefmt="%H:%M:%S")
+        )
+        logger.addHandler(console_handler)
+
+    # 运行记录日志
+    run_log_dir = ROOT_DIR
+    run_log_file_handler = logging.FileHandler(os.path.join(run_log_dir, "run_info.log"), "a")
+    run_log_file_handler.setLevel(logging.CRITICAL)
+    run_log_file_handler.setFormatter(logging.Formatter("%(message)s \n ----------------------------------------------------------------------------------", datefmt="%H:%M:%S"))
+    logger.addHandler(run_log_file_handler)
+
+    # 记录关键信息
+    logging.critical("Commond= {} \n Time= {}, Algorithm= {}, Remark= {}, Pid= {}, Device= {}".format(" ".join(argv), start_time, args.algorithm, args.remark, os.getpid(), args.device))
+
+    # TensorBoard 设置
+    SummaryWriter_dir = "log"
+    if args.algorithm in ["DIPO"]:
+        log_dir = os.path.join(
+            SummaryWriter_dir,
+            f'{start_time.strftime("%Y-%m-%d")}',
+            f"{args.algorithm}",
+            f"ue_num={args.ue_num}",
+            f"action_lr={args.action_lr}",
+            f"critic_lr={args.critic_lr}",
+            f"reverse_time_steps={args.n_timesteps}",
+            f"{args.remark}",
+        )
+    else:
+        log_dir = os.path.join(
+            SummaryWriter_dir,
+            f'{start_time.strftime("%Y-%m-%d")}',
+            f"{args.algorithm}",
+            f"{args.remark}",
+        )
+    writer = SummaryWriter(log_dir)
+
+    # 数据保存目录
+    if args.mode == "train":
+        dir = os.path.join(ROOT_DIR + "/data/temp/", f'{start_time.strftime("%Y-%m-%d")}')
+        data_save_dir = os.path.join(ROOT_DIR + "/data/train/", args.data_save_dir) if args.data_save_dir != "" else dir
+    else:
+        dir = os.path.join(ROOT_DIR + "/data/temp/eval", f'{start_time.strftime("%Y-%m-%d")}')
+        data_save_dir = os.path.join(ROOT_DIR + "/data/eval/", args.data_save_dir) if args.data_save_dir != "" else dir
+    # 是否在执行前删除已有数据
+    if args.clr_data_first:
+        if os.path.exists(data_save_dir):
+            delete_files_with_prefix(target_dir=data_save_dir, prefix=args.algorithm)
+        os.makedirs(data_save_dir, exist_ok=True)
+        # 以下方式会直接情况文件夹，但文件夹中还有其他算法的数据，所以弃用
+        # if os.path.exists(data_save_dir):
+        #     shutil.rmtree(data_save_dir)
+        # os.makedirs(data_save_dir, exist_ok=True)
+
+    # 模型保存目录
+    model_save_dir = ROOT_DIR + "/model/" + args.algorithm + "/" + args.remark
+    os.makedirs(model_save_dir, exist_ok=True)
+
+    # 图片保存目录
+    if args.mode == "train":
+        figure_save_dir = ROOT_DIR + "/figure/" + args.algorithm + "/" + args.remark
+    else:
+        figure_save_dir = ROOT_DIR + "/figure/" + args.algorithm + "/" + args.remark + "_eval"
+    if os.path.exists(figure_save_dir):
+        shutil.rmtree(figure_save_dir)
+    os.makedirs(figure_save_dir, exist_ok=True)
+
+    # 设备设置
+    device = torch.device(args.device)
+
+    # 设置seed
+    seed = args.seed
+    # PyTorch
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+    # CUDA 确定性模式
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+    # Python 和 NumPy
+    random.seed(seed)
+    np.random.seed(seed)
+
+    # 可选：设置环境变量（防止某些 CUDA 优化引入随机性）
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+
+    # 返回配置
+    config = {
+        "writer": writer,
+        "data_save_dir": data_save_dir,
+        "model_save_dir": model_save_dir,
+        "figure_save_dir": figure_save_dir,
+        "device": device,
+        "logger": logger,
+    }
+    return config
