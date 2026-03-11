@@ -10,7 +10,7 @@ import shutil
 import numpy as np
 import random
 from common import delete_files_with_prefix
-from typing import Callable, Sequence, Tuple, Optional
+from typing import Callable, Sequence, Tuple
 
 
 def readParser():

@@ -2,8 +2,6 @@ run/
 log/
 model/
 data/
-data_old/
-Network-AI-dataset/
 figure/
 cluster-trace-v2018/batch_task.csv
 __pycache__/

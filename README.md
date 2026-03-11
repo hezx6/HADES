@@ -15,15 +15,15 @@ Source code of paper ``HADES: Heterogeneity-Aware Dependent Task Offloading in C
 
 默认读取路径：
 
-- [dataset/Huawei-Network-AI-Challenge/task_table.csv](dataset/Huawei-Network-AI-Challenge/task_table.csv)
+- [dataset/Huawei-Network-AI-Challenge/task_table.csv](dataset/Huawei-Network-AI-Challenge)
 
-### alibaba 数据集
+### Alibaba 数据集
 
 默认读取路径：
 
-- [dataset/cluster-trace-v2018/batch_task.csv](dataset/cluster-trace-v2018/batch_task.csv)
+- [dataset/cluster-trace-v2018/batch_task.csv](dataset/cluster-trace-v2018)
 
-注意：`cluster` 数据集中的 `batch_task.csv` 文件体积较大，需要手动下载该文件
+注意：由于`cluster` 数据集中的 `batch_task.csv` 文件体积较大，需要手动按照数据集地址下载文件
 
 ## 训练示例
 
