@@ -9,7 +9,6 @@ import argparse
 import shutil
 import numpy as np
 import random
-from common import delete_files_with_prefix
 from typing import Callable, Sequence, Tuple
 
 
@@ -72,7 +71,6 @@ def readParser():
     parser.add_argument("--dag_node_num", type=int, default=5, help="The number of DAG's node")
     parser.add_argument("--dag_max_out", type=int, default=2, help="The max out degree of DAG nodes")
     parser.add_argument("--dag_source", type=str, default="huawei", choices=["huawei", "cluster"], help="DAG generation source")
-    parser.add_argument("--dag_dataset_file", type=str, default="", help="Path of dataset file used to build DAGs")
     parser.add_argument("--dag_dataset_shuffle", action="store_true", help="Shuffle dataset DAG order before sampling")
 
     # ===================================  DIPO  =========================================
@@ -155,14 +153,6 @@ def readParser():
     parser.add_argument("--ddpg_action_std_decay_rate", type=float, default=0.95)
     parser.add_argument("--ddpg_min_action_std", type=float, default=0.01)
 
-    # GCN-ppo-Lagrangen
-    parser.add_argument("--penalty_lr", type=float, default=0.0003)
-    parser.add_argument("--cost_limit", type=float, default=10)
-    # TD3
-    parser.add_argument("--td3_noise_clip", "-tnc", default=0.025, type=float)
-    parser.add_argument("--td3_policy_noise", "-tpn", default=0.2, type=float)
-    parser.add_argument("--td3_noise_std", "-tns", default=0.025, type=float)
-
     # SAC
     parser.add_argument("--sac_actor_lr", default=0.0003, type=float)
     parser.add_argument("--sac_critic_lr", default=0.0003, type=float)
@@ -176,89 +166,24 @@ def readParser():
 
 def setup(args, argv):
     start_time = datetime.now()
-    run_dir = os.path.join(ROOT_DIR + "/run", f'{start_time.strftime("%Y-%m-%d")}')
-    os.makedirs(run_dir, exist_ok=True)
-    log_file_name = start_time.strftime("%H:%M:%S") + "-" + args.algorithm + "-" + args.remark
-
-    # 日志记录设置
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-    if args.log2file:
-        file_handler = logging.FileHandler(os.path.join(run_dir, log_file_name), "a")
-        file_handler.setLevel(getattr(logging, args.log_level))
-        file_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s \n ----------------------------------------------------------------------------------", datefmt="%H:%M:%S")
-        )
-        logger.addHandler(file_handler)
-    elif args.log2stdout:
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(getattr(logging, args.log_level))
-        console_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s \n ----------------------------------------------------------------------------------", datefmt="%H:%M:%S")
-        )
-        logger.addHandler(console_handler)
-
-    # 运行记录日志
-    run_log_dir = ROOT_DIR
-    run_log_file_handler = logging.FileHandler(os.path.join(run_log_dir, "run_info.log"), "a")
-    run_log_file_handler.setLevel(logging.CRITICAL)
-    run_log_file_handler.setFormatter(logging.Formatter("%(message)s \n ----------------------------------------------------------------------------------", datefmt="%H:%M:%S"))
-    logger.addHandler(run_log_file_handler)
 
     # 记录关键信息
     logging.critical("Commond= {} \n Time= {}, Algorithm= {}, Remark= {}, Pid= {}, Device= {}".format(" ".join(argv), start_time, args.algorithm, args.remark, os.getpid(), args.device))
 
     # TensorBoard 设置
     SummaryWriter_dir = "log"
-    if args.algorithm in ["DIPO"]:
-        log_dir = os.path.join(
-            SummaryWriter_dir,
-            f'{start_time.strftime("%Y-%m-%d")}',
-            f"{args.algorithm}",
-            f"ue_num={args.ue_num}",
-            f"action_lr={args.action_lr}",
-            f"critic_lr={args.critic_lr}",
-            f"reverse_time_steps={args.n_timesteps}",
-            f"{args.remark}",
-        )
-    else:
-        log_dir = os.path.join(
-            SummaryWriter_dir,
-            f'{start_time.strftime("%Y-%m-%d")}',
-            f"{args.algorithm}",
-            f"{args.remark}",
-        )
-    writer = SummaryWriter(log_dir)
 
-    # 数据保存目录
-    if args.mode == "train":
-        dir = os.path.join(ROOT_DIR + "/data/temp/", f'{start_time.strftime("%Y-%m-%d")}')
-        data_save_dir = os.path.join(ROOT_DIR + "/data/train/", args.data_save_dir) if args.data_save_dir != "" else dir
-    else:
-        dir = os.path.join(ROOT_DIR + "/data/temp/eval", f'{start_time.strftime("%Y-%m-%d")}')
-        data_save_dir = os.path.join(ROOT_DIR + "/data/eval/", args.data_save_dir) if args.data_save_dir != "" else dir
-    # 是否在执行前删除已有数据
-    if args.clr_data_first:
-        if os.path.exists(data_save_dir):
-            delete_files_with_prefix(target_dir=data_save_dir, prefix=args.algorithm)
-        os.makedirs(data_save_dir, exist_ok=True)
-        # 以下方式会直接情况文件夹，但文件夹中还有其他算法的数据，所以弃用
-        # if os.path.exists(data_save_dir):
-        #     shutil.rmtree(data_save_dir)
-        # os.makedirs(data_save_dir, exist_ok=True)
+    log_dir = os.path.join(
+        SummaryWriter_dir,
+        f'{start_time.strftime("%Y-%m-%d")}',
+        f"{args.algorithm}",
+        f"{args.remark}",
+    )
+    writer = SummaryWriter(log_dir)
 
     # 模型保存目录
     model_save_dir = ROOT_DIR + "/model/" + args.algorithm + "/" + args.remark
     os.makedirs(model_save_dir, exist_ok=True)
-
-    # 图片保存目录
-    if args.mode == "train":
-        figure_save_dir = ROOT_DIR + "/figure/" + args.algorithm + "/" + args.remark
-    else:
-        figure_save_dir = ROOT_DIR + "/figure/" + args.algorithm + "/" + args.remark + "_eval"
-    if os.path.exists(figure_save_dir):
-        shutil.rmtree(figure_save_dir)
-    os.makedirs(figure_save_dir, exist_ok=True)
 
     # 设备设置
     device = torch.device(args.device)
@@ -279,16 +204,10 @@ def setup(args, argv):
     random.seed(seed)
     np.random.seed(seed)
 
-    # 可选：设置环境变量（防止某些 CUDA 优化引入随机性）
-    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-
     # 返回配置
     config = {
         "writer": writer,
-        "data_save_dir": data_save_dir,
         "model_save_dir": model_save_dir,
-        "figure_save_dir": figure_save_dir,
         "device": device,
-        "logger": logger,
     }
     return config

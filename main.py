@@ -54,12 +54,10 @@ def main(args, config):
     batch_size = args.batch_size
     algorithm = args.algorithm
 
-    dataset_file = args.dag_dataset_file
-    if dataset_file == "":
-        if args.dag_source == "huawei":
-            dataset_file = os.path.join(cn.ROOT_DIR, "dataset", "Huawei-Network-AI-Challenge", "task_table.csv")
-        elif args.dag_source == "cluster":
-            dataset_file = os.path.join(cn.ROOT_DIR, "dataset", "cluster-trace-v2018", "batch_task.csv")
+    if args.dag_source == "huawei":
+        dataset_file = os.path.join(cn.ROOT_DIR, "dataset", "Huawei-Network-AI-Challenge", "task_table.csv")
+    elif args.dag_source == "cluster":
+        dataset_file = os.path.join(cn.ROOT_DIR, "dataset", "cluster-trace-v2018", "batch_task.csv")
 
     dag_builder = DatasetDAGTaskBuilder(seed=args.seed)
     DAG_tasks_set = dag_builder.build(

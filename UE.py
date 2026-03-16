@@ -30,5 +30,3 @@ class UserEquipment:
         logging.info(Style.BRIGHT + Fore.BLUE + "t= {}, ue-{} generates a new dag task".format(time, self.index) + Style.RESET_ALL)
 
         return new_task
-
-        logging.error(Style.BRIGHT + Fore.RED + Back.BLACK + "time= {}, ue-{}'s {}th wait_delay_ue < 0, its create time is {}".format(time, self.index, self.seg_in_trans.index, self.seg_in_trans.create_time) + Style.RESET_ALL)

@@ -230,14 +230,7 @@ class Env:
 
 
 def calculate_VaR_CVaR(data, alpha=0.95):
-    """
-    计算给定数据集和置信水平(alpha)的CVaR（条件风险价值）。
 
-    :param (list/array) data:  损失值列表（正值表示损失，负值表示收益需预处理）。
-    :param (float) alpha:  置信水平（0 < alpha < 1，例如0.95表示95%置信水平）。
-
-    :return  CVaR值 (float):
-    """
     var = np.quantile(data, alpha)
     tail = data[data >= var]
     return var, np.mean(tail) if len(tail) > 0 else var
