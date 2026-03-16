@@ -3,11 +3,11 @@
 
 ## Environment
 
-- OS：Linux
+- OS：Ubuntu 22.04
 - Python：3.10.12
 - Torch：2.2.2
 - CUDA：13.0
-
+- Device：NVIDIA GeForce RTX 2080 Ti
 ## Main Files
 
 - [main.py](main.py): Main entry point for training and evaluation.
@@ -26,11 +26,15 @@
 
 Default path： [dataset/Huawei-Network-AI-Challenge](dataset/Huawei-Network-AI-Challenge)
 
+Training file: `task_table.csv`
+
 ### Alibaba Dataset
 
 Default path： [dataset/cluster-trace-v2018](dataset/cluster-trace-v2018)
 
-Note: The `batch_task.csv` file in this dataset is relatively large, so it needs to be downloaded manually from the dataset source.
+Training file: `batch_task.csv`
+
+Note: The dataset files are relatively large and need to be downloaded manually from the dataset source.
 
 ## Example
 
